@@ -1,0 +1,981 @@
+<section id="cartography-of-memory" class="cartography-exhibit" aria-label="Interactive memory map">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css" integrity="sha256-qx5w1Z7EBGW65+cDDaLzzPKBM/1QLmK9WY7vut/XpzI=" crossorigin="">
+  <style>
+    .cartography-exhibit { color-scheme: light; --paper:#fff; --white:#fff; --ink:#000; --muted:#000; --line:#d8d8d8; --accent:#000; }
+    .cartography-exhibit * { box-sizing:border-box; font-family:inherit; }
+    .cartography-exhibit [hidden] { display:none !important; }
+    .cartography-exhibit { isolation:isolate; position:relative; box-sizing:border-box; margin:0; background:var(--paper); color:var(--ink); font-family:inherit; font-size:14px; line-height:1.5; }
+    .cartography-exhibit button, .cartography-exhibit input, .cartography-exhibit select, .cartography-exhibit summary { font:inherit; }
+    .cartography-exhibit button, .cartography-exhibit select, .cartography-exhibit summary { cursor:pointer; }
+    .cartography-exhibit a, .cartography-exhibit a:visited { color:var(--ink); }
+    .cartography-exhibit input::placeholder { color:var(--ink); opacity:1; }
+    .cartography-exhibit button, .cartography-exhibit select, .cartography-exhibit input[type="search"] { border:1px solid var(--line); border-radius:5px; background:var(--white); color:var(--ink); min-height:42px; padding:9px 12px; }
+    .cartography-exhibit button:hover, .cartography-exhibit .cm-dropdown > summary:hover { background:var(--ink); color:var(--white); }
+    .cartography-exhibit button:disabled { opacity:.42; cursor:default; }
+    .cartography-exhibit :focus-visible { outline:3px solid var(--ink); outline-offset:3px; }
+    .cartography-exhibit input[type="checkbox"], .cartography-exhibit input[type="range"] { accent-color:var(--accent); }
+    .cartography-exhibit input[type="checkbox"] { width:17px; height:17px; flex-shrink:0; }
+    .cartography-exhibit h2, .cartography-exhibit h3, .cartography-exhibit p { margin:0; color:inherit; }
+    .cartography-exhibit h2, .cartography-exhibit h3 { font-family:inherit; font-weight:400; }
+    .cartography-exhibit { max-width:1480px; margin:auto; padding:0 0 20px; }
+    .cartography-exhibit .cm-eyebrow { font-size:10px; letter-spacing:.18em; text-transform:uppercase; font-weight:650; color:var(--muted); }
+    .cartography-exhibit .cm-toolbar { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; padding:16px 0; border-top:1px solid var(--line); }
+    .cartography-exhibit .cm-toolbar-label { display:block; color:var(--muted); font-size:12px; font-weight:650; letter-spacing:.12em; text-transform:uppercase; margin-bottom:5px; }
+    .cartography-exhibit .cm-dropdown { position:relative; }
+    .cartography-exhibit .cm-dropdown > summary { list-style:none; min-width:160px; min-height:42px; border:1px solid var(--line); border-radius:5px; padding:10px 12px; background:var(--white); display:flex; align-items:center; gap:20px; justify-content:space-between; }
+    .cartography-exhibit .cm-dropdown > summary::-webkit-details-marker { display:none; }
+    .cartography-exhibit .cm-chevron { font-size:11px; }
+    .cartography-exhibit .cm-menu { position:absolute; left:0; top:calc(100% + 7px); width:290px; max-width:calc(100vw - 40px); padding:14px; background:var(--white); border:1px solid var(--line); border-radius:7px; box-shadow:0 10px 35px #00000024; z-index:1200; }
+    .cartography-exhibit .cm-menu p { font-size:12px; color:var(--muted); margin:7px 0 12px; }
+    .cartography-exhibit .cm-check-row { display:flex; align-items:center; gap:10px; min-height:42px; padding:7px 4px; cursor:pointer; }
+    .cartography-exhibit .cm-check-row:hover { background:var(--paper); }
+    .cartography-exhibit .cm-check-row .cm-count { margin-left:auto; font-size:11px; color:var(--muted); }
+    .cartography-exhibit .cm-swatch { display:inline-block; width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+    .cartography-exhibit .cm-menu-divider { margin-top:10px; padding-top:12px; border-top:1px solid var(--line); }
+    .cartography-exhibit .cm-menu select, .cartography-exhibit .cm-menu input[type="search"] { width:100%; }
+    .cartography-exhibit .cm-menu-actions { display:flex; align-items:center; gap:8px; margin-top:12px; }
+    .cartography-exhibit .cm-primary { background:var(--accent); color:white; border-color:var(--accent); }
+    .cartography-exhibit .cm-primary:hover { background:var(--white); color:var(--ink); }
+    .cartography-exhibit .cm-place-menu { width:360px; }
+    .cartography-exhibit #cm-layer-options { max-height:270px; overflow:auto; }
+    .cartography-exhibit .cm-place-options { max-height:270px; overflow:auto; margin-top:8px; }
+    .cartography-exhibit .cm-place-options .cm-check-row { align-items:flex-start; font-size:12px; }
+    .cartography-exhibit .cm-place-options small { display:block; color:var(--muted); }
+    .cartography-exhibit .cm-spacer { flex:1; }
+    .cartography-exhibit .cm-quiet-button { background:transparent; }
+    .cartography-exhibit .cm-workspace { display:grid; grid-template-columns:minmax(0,1fr) 320px; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--white); }
+    .cartography-exhibit .cm-map-column { min-width:0; position:relative; }
+    .cartography-exhibit .cm-map-wrap { position:relative; }
+    .cartography-exhibit #cm-map { height:500px; background:var(--white); z-index:0; }
+    .cartography-exhibit .cm-map-note { position:absolute; left:14px; top:14px; z-index:500; max-width:calc(100% - 74px); background:var(--white); border:1px solid var(--line); border-radius:4px; padding:7px 10px; font-size:12px; box-shadow:0 2px 8px #0000000d; pointer-events:none; }
+    .cartography-exhibit .cm-map-note span { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--accent); margin-right:6px; }
+    .cartography-exhibit .cm-legend { position:absolute; left:14px; bottom:27px; z-index:500; background:var(--white); border:1px solid var(--line); border-radius:4px; max-width:calc(100% - 28px); padding:8px 11px; font-size:11px; display:flex; flex-wrap:wrap; gap:5px 12px; pointer-events:none; }
+    .cartography-exhibit .cm-legend-item { display:flex; gap:5px; align-items:center; }
+    .cartography-exhibit .cm-gradient { width:110px; height:7px; border-radius:3px; }
+    .cartography-exhibit .cm-legend-line { display:flex; align-items:center; flex-wrap:wrap; gap:8px; width:100%; }
+    .cartography-exhibit .cm-legend.cm-sentiment-legend { width:310px; }
+    .cartography-exhibit .cm-sentiment-scale { display:flex; align-items:center; gap:8px; width:100%; }
+    .cartography-exhibit .cm-sentiment-scale .cm-gradient { flex:1; min-width:0; }
+    .cartography-exhibit .cm-sentiment-caption { width:100%; line-height:1.4; }
+    .cartography-exhibit .cm-line-key { display:inline-block; width:24px; border-top:3px solid #12271E; }
+    .cartography-exhibit .cm-memory-marker { border:none; background:none; }
+    .cartography-exhibit .cm-marker-disc { position:absolute; width:var(--diameter,14px); height:var(--diameter,14px); left:50%; top:50%; transform:translate(-50%,-50%); border:2px solid white; border-radius:50%; box-shadow:0 1px 4px #00000060; }
+    .cartography-exhibit .cm-memory-marker.cm-active .cm-marker-disc { outline:2px solid var(--ink); box-shadow:0 0 0 7px #ffffff65; }
+    .cartography-exhibit .cm-journey { padding:20px 24px 17px; border-top:1px solid var(--line); }
+    .cartography-exhibit .cm-journey-heading { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+    .cartography-exhibit .cm-journey-heading h3 { font-size:20px; }
+    .cartography-exhibit .cm-journey-count { font-size:11px; color:var(--muted); }
+    .cartography-exhibit .cm-journey input[type="range"] { width:100%; margin:17px 0 0; cursor:pointer; }
+    .cartography-exhibit .cm-range-labels { display:flex; justify-content:space-between; color:var(--muted); font-size:10px; }
+    .cartography-exhibit .cm-journey-actions { display:flex; gap:8px; align-items:center; margin-top:15px; }
+    .cartography-exhibit .cm-journey-actions select { min-width:95px; }
+    .cartography-exhibit .cm-journey-actions label { margin-left:auto; }
+    .cartography-exhibit .cm-narrative { border-left:1px solid var(--line); padding:28px; display:flex; flex-direction:column; min-width:0; }
+    .cartography-exhibit .cm-narrative h2 { font-size:30px; line-height:1.18; letter-spacing:-.025em; margin:14px 0; overflow-wrap:anywhere; }
+    .cartography-exhibit #cm-narrative-copy { white-space:pre-wrap; overflow-wrap:anywhere; font-size:16px; line-height:1.7; margin:0 0 24px; }
+    .cartography-exhibit .cm-selection-meta { font-size:11px; color:var(--muted); margin-bottom:16px; }
+    .cartography-exhibit .cm-place-card { border-top:1px solid var(--line); padding-top:23px; }
+    .cartography-exhibit .cm-place-year { font-size:42px; line-height:1; color:var(--accent); margin:10px 0; }
+    .cartography-exhibit .cm-place-card h3 { font-size:21px; line-height:1.3; margin-bottom:8px; }
+    .cartography-exhibit .cm-coordinates { font-size:10px; font-variant-numeric:tabular-nums; color:var(--muted); }
+    .cartography-exhibit .cm-jump { margin-top:20px; }
+    .cartography-exhibit .cm-jump select { width:100%; font-size:12px; }
+    .cartography-exhibit .cm-memory-popup h3 { font-size:23px; line-height:1.25; margin:7px 0; }
+    .cartography-exhibit .cm-memory-popup p { margin:8px 0; }
+    .cartography-exhibit .cm-memory-popup .cm-description { white-space:pre-wrap; overflow-wrap:anywhere; }
+    .cartography-exhibit .cm-memory-popup .cm-attributes { padding-top:12px; border-top:1px solid var(--line); }
+    .cartography-exhibit .cm-attributes { margin:12px 0 0; display:grid; grid-template-columns:1fr auto; gap:5px 10px; font-size:11px; }
+    .cartography-exhibit .cm-attributes dt, .cartography-exhibit .cm-attributes dd { margin:0; }
+    .cartography-exhibit .cm-attributes dd { font-variant-numeric:tabular-nums; }
+    .cartography-exhibit .cm-selection-list { max-height:170px; overflow:auto; margin:10px 0; padding-left:18px; font-size:12px; }
+    .cartography-exhibit .cm-error { margin:14px; padding:16px; background:var(--white); border:1px solid var(--ink); color:var(--ink); }
+    .cartography-exhibit .cm-sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    @media (min-width:1200px) {
+      .cartography-exhibit #cm-map { height:540px; }
+      .cartography-exhibit .cm-workspace { grid-template-columns:minmax(0,1fr) 350px; }
+    }
+    @media (max-width:800px) {
+      .cartography-exhibit { padding:0 0 16px; }
+      .cartography-exhibit .cm-workspace { grid-template-columns:minmax(0,1fr) 270px; }
+      .cartography-exhibit .cm-narrative { padding:22px; }
+      .cartography-exhibit #cm-map { height:480px; }
+      .cartography-exhibit .cm-spacer { display:none; }
+      .cartography-exhibit .cm-toolbar { gap:8px; }
+      .cartography-exhibit .cm-journey { padding:18px; }
+      .cartography-exhibit .cm-journey-actions { flex-wrap:wrap; }
+    }
+    @media (max-width:640px) {
+      .cartography-exhibit { padding:0 0 16px; }
+      .cartography-exhibit .cm-toolbar { display:grid; grid-template-columns:1fr 1fr; }
+      .cartography-exhibit .cm-toolbar > * { min-width:0; }
+      .cartography-exhibit .cm-toolbar select, .cartography-exhibit .cm-dropdown > summary { width:100%; min-width:0; font-size:12px; }
+      .cartography-exhibit .cm-toolbar > .cm-spacer { display:none; }
+      .cartography-exhibit .cm-workspace { display:flex; flex-direction:column; }
+      .cartography-exhibit #cm-map { height:400px; }
+      .cartography-exhibit .cm-narrative { border-left:0; border-top:1px solid var(--line); padding:23px; }
+      .cartography-exhibit .cm-narrative h2 { margin:10px 0; }
+      .cartography-exhibit .cm-place-card { padding-top:18px; }
+      .cartography-exhibit .cm-menu { width:calc(100vw - 30px); max-width:360px; }
+      .cartography-exhibit .cm-compare-control .cm-menu { left:0; }
+      .cartography-exhibit .cm-display-control .cm-menu { left:auto; right:0; }
+    }
+    @media (prefers-reduced-motion:reduce) {
+      .cartography-exhibit * { scroll-behavior:auto !important; }
+    }
+    .cartography-exhibit .cm-preview-controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:0 0 14px; }
+    .cartography-exhibit .cm-preview-controls p { color:var(--muted); font-size:12px; }
+    .cartography-exhibit .cm-preview-controls button[aria-pressed="true"] { background:var(--accent); color:white; }
+    .cartography-exhibit .maplibregl-map { font-family:inherit; }
+    .cartography-exhibit .maplibregl-ctrl button { min-height:29px; padding:0; }
+    .cartography-exhibit .maplibregl-ctrl button:hover { background:var(--white); box-shadow:inset 0 0 0 1px var(--ink); }
+    .cartography-exhibit .maplibregl-ctrl-attrib { font-size:9px; }
+    .cartography-exhibit .cm-memory-marker { width:28px; height:28px; min-height:28px; padding:0; cursor:pointer; }
+    .cartography-exhibit .cm-memory-marker:hover { background:transparent; }
+    .cartography-exhibit .cm-sentiment-overlay { position:absolute; inset:0; pointer-events:none; opacity:.72; z-index:1; width:100%; height:100%; }
+    .cartography-exhibit .cm-memory-popup { z-index:4; }
+    .cartography-exhibit .cm-memory-popup .maplibregl-popup-content { background:var(--white); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:20px; font-family:inherit; font-size:14px; line-height:1.65; }
+    .cartography-exhibit .cm-memory-popup section { max-height:260px; overflow:auto; padding-right:8px; }
+    .cartography-exhibit .cm-memory-popup .maplibregl-popup-close-button { color:var(--ink); width:30px; height:30px; min-height:30px; padding:0; }
+    .cartography-exhibit .cm-memory-popup .maplibregl-popup-close-button:hover { background:var(--ink); color:var(--white); }
+    .cartography-exhibit .cm-memory-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color:var(--white); }
+  </style>
+
+  <nav aria-label="Map selections" class="cm-toolbar">
+   <div>
+    <span class="cm-toolbar-label">
+     Explore by theme
+    </span>
+    <details class="cm-dropdown" id="cm-layers-menu">
+     <summary>
+      <span id="cm-layer-summary">
+       All places
+      </span>
+      <span aria-hidden="true" class="cm-chevron">
+       ⌄
+      </span>
+     </summary>
+     <div class="cm-menu">
+      <strong>
+       Map layers
+      </strong>
+      <p>
+       Choose one or more themes. Chronotopes matching any selected theme appear together.
+      </p>
+      <div id="cm-layer-options">
+      </div>
+      <div class="cm-menu-divider">
+       <label class="cm-toolbar-label" for="cm-flag-value">
+        Show places marked
+       </label>
+       <select id="cm-flag-value">
+        <option value="yes">
+         Yes
+        </option>
+        <option value="no">
+         No
+        </option>
+       </select>
+      </div>
+      <div class="cm-menu-actions">
+       <button id="cm-clear-layers" type="button">
+        All places
+       </button>
+       <button class="cm-primary" id="cm-close-layers" type="button">
+        Done
+       </button>
+      </div>
+     </div>
+    </details>
+   </div>
+   <div class="cm-display-control">
+    <span class="cm-toolbar-label">
+     Map display
+    </span>
+    <details class="cm-dropdown" id="cm-display-menu">
+     <summary>
+      <span id="cm-display-summary">
+       Chronotopes
+      </span>
+      <span aria-hidden="true" class="cm-chevron">
+       ⌄
+      </span>
+     </summary>
+     <div class="cm-menu">
+      <strong>
+       Map display
+      </strong>
+      <p>
+       Combine displays to explore the chronotopes in various ways.
+      </p>
+      <label class="cm-check-row">
+       <input checked="" id="cm-display-layers" type="checkbox" value="layers"/>
+       Chronotopes
+      </label>
+      <label class="cm-check-row">
+       <input id="cm-display-sentiment" type="checkbox" value="sentiment"/>
+       Sentiment heatmap
+      </label>
+      <label class="cm-check-row">
+       <input id="cm-display-chronology" type="checkbox" value="chronology"/>
+       Chronology lines
+      </label>
+      <div class="cm-menu-actions">
+       <button class="cm-primary" id="cm-close-displays" type="button">
+        Done
+       </button>
+      </div>
+     </div>
+    </details>
+   </div>
+   <div class="cm-compare-control">
+    <span class="cm-toolbar-label">
+     Build a reading
+    </span>
+    <details class="cm-dropdown" id="cm-places-menu">
+     <summary>
+      <span id="cm-compare-summary">
+       Compare places
+      </span>
+      <span aria-hidden="true" class="cm-chevron">
+       ⌄
+      </span>
+     </summary>
+     <div class="cm-menu cm-place-menu">
+      <strong>
+       Choose places
+      </strong>
+      <p>
+       Select individual chronotopes to chart a unique reading.
+      </p>
+      <label class="cm-sr-only" for="cm-place-search">
+       Search places or years
+      </label>
+      <input id="cm-place-search" placeholder="Search a place or year…" type="search"/>
+      <div class="cm-place-options" id="cm-place-options">
+      </div>
+      <div class="cm-menu-actions">
+       <button class="cm-primary" disabled="" id="cm-apply-places" type="button">
+        View selected (0)
+       </button>
+       <button id="cm-clear-places" type="button">
+        Clear
+       </button>
+      </div>
+     </div>
+    </details>
+   </div>
+  </nav>
+  <div aria-label="Select view" class="cm-preview-controls">
+   <span class="cm-toolbar-label">
+    select view
+   </span>
+   <button aria-pressed="true" id="cm-view-3d" type="button">
+    3D view
+   </button>
+   <button aria-pressed="false" id="cm-view-flat" type="button">
+    Flat view
+   </button>
+   <button id="cm-view-buildings" type="button">
+    See up close
+   </button>
+   <button id="cm-fit-selection" title="Zoom out to show every place in the current selection" type="button">
+    Fit selection
+    <span aria-hidden="true">
+     ↗
+    </span>
+   </button>
+   <button class="cm-quiet-button" id="cm-reset" type="button">
+    Start again
+    <span aria-hidden="true">
+     ↺
+    </span>
+   </button>
+  </div>
+  <div class="cm-error" hidden="" id="cm-load-error" role="alert">
+  </div>
+  <noscript>
+   <p class="cm-error">
+    Enable JavaScript to explore the interactive map.
+   </p>
+  </noscript>
+  <div class="cm-workspace">
+   <section aria-label="Map and chronological journey" class="cm-map-column">
+    <div class="cm-map-wrap">
+     <div aria-label="Interactive map of life locations" id="cm-map">
+     </div>
+     <div class="cm-map-note" id="cm-map-note">
+      <span>
+      </span>
+      All places mapped · beginning in St. Paul
+     </div>
+     <div aria-label="Map legend" class="cm-legend" id="cm-legend">
+     </div>
+    </div>
+    <section aria-label="Chronological navigation" class="cm-journey">
+     <div class="cm-journey-heading">
+      <h3>
+       journey through time
+      </h3>
+      <span class="cm-journey-count" id="cm-journey-count">
+      </span>
+     </div>
+     <label class="cm-sr-only" for="cm-timeline">
+      Move through places in chronological order
+     </label>
+     <input id="cm-timeline" max="0" min="0" step="1" type="range" value="0"/>
+     <div class="cm-range-labels">
+      <span id="cm-first-year">
+      </span>
+      <span id="cm-last-year">
+      </span>
+     </div>
+     <div class="cm-journey-actions">
+      <button aria-label="Previous place chronologically" id="cm-previous" type="button">
+       ← Previous
+      </button>
+      <button aria-label="Next place chronologically" class="cm-primary" id="cm-next" type="button">
+       Next →
+      </button>
+      <label>
+       <span class="cm-sr-only">
+        Jump to a year
+       </span>
+       <select aria-label="Jump to a year" id="cm-year-select">
+       </select>
+      </label>
+     </div>
+    </section>
+   </section>
+   <aside aria-label="Selection narrative" class="cm-narrative">
+    <p class="cm-eyebrow">
+     Selected layers
+    </p>
+    <h2 id="cm-narrative-title">
+     All places
+    </h2>
+    <p class="cm-selection-meta" id="cm-selection-meta">
+    </p>
+    <p hidden="" id="cm-narrative-copy">
+    </p>
+    <section class="cm-place-card" id="cm-place-card">
+     <p class="cm-eyebrow" id="cm-place-caption">
+      Your current place
+     </p>
+     <p class="cm-place-year" id="cm-place-year">
+     </p>
+     <h3 id="cm-place-title">
+     </h3>
+     <p class="cm-coordinates" id="cm-coordinates">
+     </p>
+     <ul class="cm-selection-list" hidden="" id="cm-selection-list">
+     </ul>
+    </section>
+    <label class="cm-jump">
+     <span class="cm-toolbar-label">
+      Jump to a place
+     </span>
+     <select aria-label="Jump to a place" id="cm-place-select">
+     </select>
+    </label>
+   </aside>
+  </div>
+  <p aria-atomic="true" aria-live="polite" class="cm-sr-only" id="cm-announcement" role="status">
+  </p>
+
+<script id="cm-lifemap-data" type="application/json">__LIFEMAP_DATA__</script>
+<script id="cm-lifemap-themes" type="application/json">__LIFEMAP_THEMES__</script>
+<script id="cm-lifemap-narratives" type="application/json">__LIFEMAP_NARRATIVES__</script>
+<script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js" integrity="sha256-RamwepGJzlYFTGIKlHzPQeKR5YyV6bYVM7dAqqZe5cs=" crossorigin=""></script>
+<script>
+(() => {
+  'use strict';
+  
+  const root = document.getElementById('cartography-of-memory');
+  const el = id => root.querySelector('#cm-' + id);
+  if (!window.maplibregl) {
+    el('load-error').hidden = false;
+    el('load-error').textContent = 'The map library could not load. Check your internet connection and reload this exhibit.';
+    for (const control of root.querySelectorAll('button, select, input')) control.disabled = true;
+    return;
+  }
+  const data = JSON.parse(el('lifemap-data').textContent);
+  const narratives = JSON.parse(el('lifemap-narratives').textContent);
+  
+  const themePalette = ['#b87837', '#38756b', '#b7594c', '#75658c', '#477c9c'];
+  const themes = JSON.parse(el('lifemap-themes').textContent).map((key,index) => ({
+    key, title:key, id:index,
+    color:themePalette[index] || `hsl(${Math.round(index * 137.508) % 360}, 48%, 42%)`
+  }));
+  
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const ordered = data.slice().sort((a,b) => a.chronology - b.chronology || a.order - b.order);
+  const byId = new Map();
+  for (const place of ordered) byId.set(place.id, place);
+  const home = ordered[0];
+  const homeZoom = 16;
+  const homePitch = 55;
+  const homeBearing = -20;
+  
+  let selectedThemes = new Set();
+  let selectedPlaces = new Set();
+  let draftPlaces = new Set();
+  let visible = ordered.slice();
+  let activeId = home.id;
+  let flagValue = 'yes';
+  let selectedDisplays = new Set(['layers']);
+  let popupPlaceId = null;
+  let map;
+  let popup = null;
+  const markers = new Map();
+  
+  function backgroundError(message) {
+    el('load-error').textContent = message;
+    el('load-error').hidden = false;
+    el('map').dataset.basemapStatus = 'error';
+  }
+  
+  try {
+    map = new maplibregl.Map({
+      container:el('map'), style:__LIFEMAP_BASEMAP__,
+      center:[home.longitude,home.latitude], zoom:homeZoom,
+      pitch:homePitch, bearing:homeBearing, maxPitch:70, minZoom:1, maxZoom:20,
+      scrollZoom:false, attributionControl:false, renderWorldCopies:false,
+      canvasContextAttributes:{antialias:true}
+    });
+  } catch (error) {
+    backgroundError('The exhibit needs WebGL. Try a browser with graphics acceleration enabled.');
+    for (const control of root.querySelectorAll('button, select, input')) control.disabled = true;
+    return;
+  }
+  
+  map.addControl(new maplibregl.NavigationControl({visualizePitch:true}), 'top-right');
+  map.addControl(new maplibregl.ScaleControl({unit:'metric'}), 'bottom-right');
+  map.addControl(new maplibregl.AttributionControl({compact:true, customAttribution:'<a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a>'}));
+  el('map').dataset.basemapStatus = 'loading';
+  map.on('error', () => backgroundError('Some map resources could not load. Check your connection and reload the 3D preview.'));
+  map.on('load', () => {
+    map.addSource('lifemap-chronology', {type:'geojson', data:chronologyData()});
+    map.addLayer({id:'lifemap-chronology', type:'line', source:'lifemap-chronology',
+      paint:{'line-color':'#12271E', 'line-width':2.5, 'line-opacity':0.75}});
+    updateChronology();
+    el('map').dataset.basemapStatus = 'ready';
+  });
+  
+  function chronologyData() {
+    return {type:'FeatureCollection', features:selectedDisplays.has('chronology') && visible.length > 1 ? [{
+      type:'Feature', properties:{}, geometry:{type:'LineString', coordinates:visible.map(place => [place.longitude,place.latitude])}
+    }] : []};
+  }
+  
+  function updateChronology() {
+    map.getSource('lifemap-chronology')?.setData(chronologyData());
+  }
+  
+  function cameraView(pitch, bearing) {
+    map.easeTo({pitch, bearing, duration:reducedMotion.matches ? 0 : 600});
+  }
+  el('view-flat').addEventListener('click', () => cameraView(0,0));
+  el('view-3d').addEventListener('click', () => cameraView(homePitch,homeBearing));
+  el('view-buildings').addEventListener('click', () => {
+    const place = byId.get(activeId) || visible[0] || home;
+    focusPlace(place.id, {zoom:16.5, pitch:homePitch, bearing:homeBearing});
+  });
+  map.on('pitch', () => {
+    el('view-flat').setAttribute('aria-pressed', String(map.getPitch() < 1));
+    el('view-3d').setAttribute('aria-pressed', String(map.getPitch() >= 1));
+  });
+  const sentimentColors = [
+    '#fde725', '#fbe723', '#f8e621', '#f6e620', '#f4e61e', '#f1e51d', '#efe51c', '#ece51b', '#eae51a', '#e7e419', '#e5e419', '#e2e418', '#dfe318', '#dde318', '#dae319', '#d8e219',
+    '#d5e21a', '#d2e21b', '#d0e11c', '#cde11d', '#cae11f', '#c8e020', '#c5e021', '#c2df23', '#c0df25', '#bddf26', '#bade28', '#b8de29', '#b5de2b', '#b2dd2d', '#b0dd2f', '#addc30',
+    '#aadc32', '#a8db34', '#a5db36', '#a2da37', '#a0da39', '#9dd93b', '#9bd93c', '#98d83e', '#95d840', '#93d741', '#90d743', '#8ed645', '#8bd646', '#89d548', '#86d549', '#84d44b',
+    '#81d34d', '#7fd34e', '#7cd250', '#7ad151', '#77d153', '#75d054', '#73d056', '#70cf57', '#6ece58', '#6ccd5a', '#69cd5b', '#67cc5c', '#65cb5e', '#63cb5f', '#60ca60', '#5ec962',
+    '#5cc863', '#5ac864', '#58c765', '#56c667', '#54c568', '#52c569', '#50c46a', '#4ec36b', '#4cc26c', '#4ac16d', '#48c16e', '#46c06f', '#44bf70', '#42be71', '#40bd72', '#3fbc73',
+    '#3dbc74', '#3bbb75', '#3aba76', '#38b977', '#37b878', '#35b779', '#34b679', '#32b67a', '#31b57b', '#2fb47c', '#2eb37c', '#2db27d', '#2cb17e', '#2ab07f', '#29af7f', '#28ae80',
+    '#27ad81', '#26ad81', '#25ac82', '#25ab82', '#24aa83', '#23a983', '#22a884', '#22a785', '#21a685', '#21a585', '#20a486', '#20a386', '#1fa287', '#1fa187', '#1fa188', '#1fa088',
+    '#1f9f88', '#1f9e89', '#1e9d89', '#1e9c89', '#1e9b8a', '#1f9a8a', '#1f998a', '#1f988b', '#1f978b', '#1f968b', '#1f958b', '#1f948c', '#20938c', '#20928c', '#20928c', '#21918c',
+    '#21908d', '#218f8d', '#218e8d', '#228d8d', '#228c8d', '#228b8d', '#238a8d', '#23898e', '#23888e', '#24878e', '#24868e', '#25858e', '#25848e', '#25838e', '#26828e', '#26828e',
+    '#26818e', '#27808e', '#277f8e', '#277e8e', '#287d8e', '#287c8e', '#297b8e', '#297a8e', '#29798e', '#2a788e', '#2a778e', '#2a768e', '#2b758e', '#2b748e', '#2c738e', '#2c728e',
+    '#2c718e', '#2d718e', '#2d708e', '#2e6f8e', '#2e6e8e', '#2e6d8e', '#2f6c8e', '#2f6b8e', '#306a8e', '#30698e', '#31688e', '#31678e', '#31668e', '#32658e', '#32648e', '#33638d',
+    '#33628d', '#34618d', '#34608d', '#355f8d', '#355e8d', '#365d8d', '#365c8d', '#375b8d', '#375a8c', '#38598c', '#38588c', '#39568c', '#39558c', '#3a548c', '#3a538b', '#3b528b',
+    '#3b518b', '#3c508b', '#3c4f8a', '#3d4e8a', '#3d4d8a', '#3e4c8a', '#3e4a89', '#3e4989', '#3f4889', '#3f4788', '#404688', '#404588', '#414487', '#414287', '#424186', '#424086',
+    '#423f85', '#433e85', '#433d84', '#443b84', '#443a83', '#443983', '#453882', '#453781', '#453581', '#463480', '#46337f', '#46327e', '#46307e', '#472f7d', '#472e7c', '#472d7b',
+    '#472c7a', '#472a7a', '#482979', '#482878', '#482677', '#482576', '#482475', '#482374', '#482173', '#482071', '#481f70', '#481d6f', '#481c6e', '#481b6d', '#481a6c', '#48186a',
+    '#481769', '#481668', '#481467', '#471365', '#471164', '#471063', '#470e61', '#470d60', '#460b5e', '#460a5d', '#46085c', '#46075a', '#450559', '#450457', '#440256', '#440154'
+  ].map(hex => [1,3,5].map(start => parseInt(hex.slice(start,start+2),16)));
+  function getSentimentRange(places) {
+    let min = Infinity, max = -Infinity;
+    for (const place of places) {
+      if (!Number.isFinite(place.sentiment)) continue;
+      min = Math.min(min,place.sentiment);
+      max = Math.max(max,place.sentiment);
+    }
+    return min === Infinity ? null : {min,max};
+  }
+  const sentimentRange = getSentimentRange(data);
+  function sentimentColorPosition(score) {
+    if (!sentimentRange || sentimentRange.min === sentimentRange.max) return 0.5;
+    return Math.max(0,Math.min(1,
+      (score - sentimentRange.min) / (sentimentRange.max - sentimentRange.min)
+    ));
+  }
+  const heatCanvas = document.createElement('canvas');
+  heatCanvas.className = 'cm-sentiment-overlay';
+  heatCanvas.setAttribute('aria-hidden','true');
+  map.getCanvasContainer().append(heatCanvas);
+  let heatPoints = [];
+  let heatFrame = null;
+  
+  function drawHeat() {
+    heatFrame = null;
+    const width = el('map').clientWidth, height = el('map').clientHeight;
+    heatCanvas.width = width; heatCanvas.height = height;
+    if (!width || !height || !heatPoints.length) return;
+    const context = heatCanvas.getContext('2d');
+      const weights = new Float32Array(width * height);
+      const scores = new Float32Array(width * height);
+      const radius = 50;
+      const radiusSquared = radius * radius;
+      const edgeWeight = Math.exp(-4.5);
+      for (const [latitude,longitude,score] of heatPoints) {
+        if (!Number.isFinite(score)) continue;
+        const value = score;
+        const point = map.project([longitude,latitude]);
+        const left = Math.max(0,Math.floor(point.x - radius));
+        const right = Math.min(width - 1,Math.ceil(point.x + radius));
+        const top = Math.max(0,Math.floor(point.y - radius));
+        const bottom = Math.min(height - 1,Math.ceil(point.y + radius));
+        for (let y = top; y <= bottom; y++) {
+          for (let x = left; x <= right; x++) {
+            const distanceSquared = (x - point.x) ** 2 + (y - point.y) ** 2;
+            if (distanceSquared >= radiusSquared) continue;
+            const weight = (Math.exp(-4.5 * distanceSquared / radiusSquared) - edgeWeight) / (1 - edgeWeight);
+            const index = y * width + x;
+            weights[index] += weight;
+            scores[index] += weight * value;
+          }
+        }
+      }
+      const frame = context.createImageData(width,height);
+      for (let i = 0; i < weights.length; i++) {
+        if (!weights[i]) continue;
+        const position = sentimentColorPosition(scores[i] / weights[i]);
+        const color = sentimentColors[Math.round(position * (sentimentColors.length - 1))];
+        for (let channel = 0; channel < 3; channel++) {
+          frame.data[4*i + channel] = color[channel];
+        }
+        frame.data[4*i + 3] = Math.round(255 * (1 - Math.exp(-1.5 * weights[i])));
+      }
+      context.putImageData(frame,0,0);
+  }
+  
+  function scheduleHeat() {
+    if (heatFrame === null) heatFrame = requestAnimationFrame(drawHeat);
+  }
+  map.on('move', scheduleHeat);
+  map.on('resize', scheduleHeat);
+  let pendingPopup = null;
+  
+  function yearText(place) { return place.year === null ? 'Undated' : String(place.year); }
+  function selectedThemeItems() { return themes.filter(theme => selectedThemes.has(theme.key)); }
+  function matchingThemes(place) { return selectedThemeItems().filter(theme => place.themeValues[theme.key] === flagValue); }
+  function themeCandidates() {
+    return ordered.filter(place => !selectedThemes.size || matchingThemes(place).length > 0);
+  }
+  
+  function markerBackground(place) {
+    const matches = matchingThemes(place);
+    if (!matches.length) return '#12271E';
+    if (matches.length === 1) return matches[0].color;
+    const segments = matches.map((theme,index) => `${theme.color} ${100*index/matches.length}% ${100*(index+1)/matches.length}%`);
+    return `conic-gradient(${segments.join(',')})`;
+  }
+  
+  function styleMarker(place) {
+    const marker = markers.get(place.id);
+    if (!marker) return;
+    const element = marker.getElement();
+    element.classList.toggle('cm-active', place.id === activeId);
+    element.style.zIndex = place.id === activeId ? '3' : '2';
+    element.setAttribute('aria-label', `${place.location}, ${yearText(place)}${place.id === activeId ? ', selected' : ''}`);
+    element.replaceChildren();
+    if (selectedDisplays.has('layers')) {
+      const disc = document.createElement('span');
+      disc.className = 'cm-marker-disc'; disc.style.background = markerBackground(place);
+      element.append(disc);
+    }
+  }
+  
+  function renderMarkers() {
+    stopMapTransition();
+    for (const marker of markers.values()) marker.remove();
+    markers.clear();
+    for (const place of selectedDisplays.size ? visible : []) {
+      const element = document.createElement('button');
+      element.type = 'button'; element.className = 'cm-memory-marker'; element.title = place.location;
+      element.addEventListener('click', event => { event.stopPropagation(); focusPlace(place.id); });
+      const marker = new maplibregl.Marker({element, anchor:'center', pitchAlignment:'viewport'})
+        .setLngLat([place.longitude,place.latitude]).addTo(map);
+      markers.set(place.id,marker);
+      styleMarker(place);
+    }
+    heatPoints = selectedDisplays.has('sentiment') ? visible.filter(place => Number.isFinite(place.sentiment))
+      .map(place => [place.latitude,place.longitude,place.sentiment]) : [];
+    scheduleHeat();
+    updateChronology();
+  }
+  
+  function selectionTitles() {
+    const titles = [];
+    for (const theme of selectedThemeItems()) titles.push(theme.title + (flagValue === 'no' ? ' · No' : ''));
+    if (!titles.length) titles.push('All places');
+    if (selectedDisplays.has('sentiment')) titles.push('Sentiment');
+    if (selectedDisplays.has('chronology')) titles.push('Chronology');
+    return titles;
+  }
+  
+  function renderLegend() {
+    el('legend').replaceChildren();
+    el('legend').hidden = !!popupPlaceId || !selectedDisplays.size;
+    el('legend').classList.toggle('cm-sentiment-legend',selectedDisplays.has('sentiment'));
+    if (selectedDisplays.has('layers')) {
+      const items = selectedThemes.size ? selectedThemeItems() : [{title:'Selected places', color:'#12271E'}];
+      for (const theme of items) {
+        const item = document.createElement('span');
+        item.className = 'cm-legend-item';
+        const swatch = document.createElement('span');
+        swatch.className = 'cm-swatch'; swatch.style.background = theme.color;
+        swatch.setAttribute('aria-hidden','true');
+        item.append(swatch,document.createTextNode(theme.title + (selectedThemes.size && flagValue === 'no' ? ' · No' : '')));
+        el('legend').append(item);
+      }
+    }
+    if (selectedDisplays.has('chronology')) {
+      const item = document.createElement('span');
+      item.className = 'cm-legend-item';
+      item.innerHTML = '<span class="cm-line-key"></span>Chronology';
+      el('legend').append(item);
+    }
+    if (selectedDisplays.has('sentiment')) {
+      const item = document.createElement('span');
+      item.className = 'cm-legend-line';
+      if (!sentimentRange) {
+        item.textContent = 'No sentiment scores recorded in this collection.';
+      } else if (sentimentRange.min === sentimentRange.max) {
+        item.innerHTML = '<span class="cm-swatch"></span><span></span>';
+        const color = sentimentColors[Math.round((sentimentColors.length - 1) / 2)];
+        item.querySelector('.cm-swatch').style.background = `rgb(${color.join(',')})`;
+        item.lastElementChild.textContent = `All recorded scores: ${sentimentRange.min.toFixed(2)}`;
+      } else {
+        item.innerHTML = '<span class="cm-sentiment-scale"><span class="cm-sentiment-low"></span><span class="cm-gradient" aria-hidden="true"></span><span class="cm-sentiment-high"></span>';
+        item.querySelector('.cm-sentiment-low').textContent = `Negative · ${sentimentRange.min.toFixed(2)}`;
+        item.querySelector('.cm-sentiment-high').textContent = `Positive · ${sentimentRange.max.toFixed(2)}`;
+        const stops = sentimentColors.map((color,index) => `rgb(${color.join(',')}) ${100*index/(sentimentColors.length-1)}%`)
+          .filter((_,index) => index % 16 === 0 || index === sentimentColors.length - 1);
+        item.querySelector('.cm-gradient').style.background = `linear-gradient(90deg,${stops.join(',')})`;
+      }
+      if (sentimentRange && !visible.some(place => Number.isFinite(place.sentiment))) {
+        const note = document.createElement('span');
+        note.textContent = 'No sentiment scores recorded for these places.';
+        item.append(note);
+      }
+      el('legend').append(item);
+    }
+  }
+  
+  function yearSpan(places) {
+    const years = [];
+    for (const place of places) if (place.year !== null) years.push(place.year);
+    return years.length ? `${Math.min(...years)} — ${Math.max(...years)}` : 'Undated';
+  }
+  
+  function renderPanel() {
+    const place = byId.get(activeId);
+    const index = visible.findIndex(item => item.id === activeId);
+    const titles = selectionTitles();
+    el('narrative-title').textContent = titles.join(' + ');
+    const paragraphs = [];
+    const narrativeKeys = selectedThemes.size ? Array.from(selectedThemes) : ['all'];
+    if (selectedDisplays.has('sentiment')) narrativeKeys.push('sentiment');
+    if (selectedDisplays.has('chronology')) narrativeKeys.push('chronology');
+    for (const key of narrativeKeys) {
+      const lookup = key + (selectedThemes.has(key) && flagValue === 'no' ? ':no' : '');
+      if (Object.prototype.hasOwnProperty.call(narratives.layers,lookup) && typeof narratives.layers[lookup] === 'string' && narratives.layers[lookup]) paragraphs.push(narratives.layers[lookup]);
+    }
+    el('narrative-copy').textContent = paragraphs.join('\n\n');
+    el('narrative-copy').hidden = !paragraphs.length;
+    el('selection-meta').textContent = `${visible.length} of ${data.length} places · ${yearSpan(visible)}`;
+    el('place-year').textContent = place ? yearText(place) : yearSpan(visible);
+    el('place-title').textContent = place ? place.location : (visible.length ? 'A geography of selected places' : 'No places match this selection');
+    el('place-caption').textContent = place ? 'Your current place' : 'The wider view';
+    el('coordinates').textContent = place ? `${Math.abs(place.latitude).toFixed(2)}° ${place.latitude >= 0 ? 'N' : 'S'} / ${Math.abs(place.longitude).toFixed(2)}° ${place.longitude >= 0 ? 'E' : 'W'}` : '';
+    el('selection-list').replaceChildren();
+    el('selection-list').hidden = !!place || !selectedPlaces.size;
+    if (!place && selectedPlaces.size) {
+      for (const item of visible) {
+        const li = document.createElement('li');
+        li.textContent = `${yearText(item)} · ${item.location}`;
+        el('selection-list').append(li);
+      }
+    }
+    el('place-select').value = place ? place.id : '';
+    el('year-select').value = place ? yearText(place) : '';
+    el('journey-count').textContent = index >= 0 ? `${index + 1} / ${visible.length} places` : `${visible.length} places`;
+    el('timeline').max = Math.max(0,visible.length - 1);
+    el('timeline').value = Math.max(0,index);
+    el('timeline').disabled = visible.length < 2;
+    el('timeline').setAttribute('aria-valuetext', place ? `${yearText(place)}, ${place.location}, place ${index+1} of ${visible.length}` : 'Overview; use Next to begin');
+    el('previous').disabled = index <= 0;
+    el('next').disabled = !visible.length || index === visible.length - 1;
+    el('next').textContent = index < 0 ? 'Begin journey →' : 'Next →';
+    el('first-year').textContent = visible.length ? yearText(visible[0]) : '';
+    el('last-year').textContent = visible.length ? yearText(visible[visible.length-1]) : '';
+    el('fit-selection').disabled = !visible.length;
+    el('layer-summary').textContent = selectedThemes.size ? `${selectedThemes.size} theme${selectedThemes.size === 1 ? '' : 's'}` : 'All places';
+    el('compare-summary').textContent = selectedPlaces.size ? `${selectedPlaces.size} places selected` : 'Compare places';
+    el('map-note').replaceChildren();
+    const dot = document.createElement('span');
+    el('map-note').append(dot,document.createTextNode(`${visible.length} places mapped${place ? ' · ' + place.location : ' · overview'}`));
+    el('announcement').textContent = `${titles.join(', ')}. ${visible.length} places. ${place ? place.location + ', ' + yearText(place) : 'Overview.'}`;
+  }
+  
+  function renderNavigation() {
+    el('place-select').replaceChildren(new Option('Choose a place…',''));
+    el('year-select').replaceChildren(new Option('Year…',''));
+    const years = new Set();
+    for (const place of visible) {
+      el('place-select').append(new Option(`${yearText(place)} · ${place.location}`,place.id));
+      const year = yearText(place);
+      if (!years.has(year)) { el('year-select').append(new Option(year,year)); years.add(year); }
+    }
+    el('place-select').disabled = !visible.length;
+    el('year-select').disabled = !visible.length;
+  }
+  
+  function focusZoom(place) {
+    let nearest = Infinity;
+    for (const candidate of ordered) {
+      if (candidate.id !== place.id) nearest = Math.min(nearest,new maplibregl.LngLat(place.longitude,place.latitude).distanceTo([candidate.longitude,candidate.latitude]));
+    }
+    return nearest < 1200 ? 16 : nearest < 8000 ? 14 : 12;
+  }
+  
+  function popupContent(place) {
+    const content = document.createElement('section');
+    content.setAttribute('aria-label', `Place details: ${place.location}`);
+    const year = document.createElement('p');
+    year.className = 'cm-eyebrow'; year.textContent = yearText(place);
+    const title = document.createElement('h3'); title.textContent = place.location;
+    const description = document.createElement('p');
+    description.className = 'cm-description'; description.textContent = place.description;
+    const attributes = document.createElement('dl'); attributes.className = 'cm-attributes';
+    const pairs = [['Sentiment', place.sentiment === null ? 'Not recorded' : place.sentiment.toFixed(2)]];
+    for (const theme of themes) pairs.push([theme.title, place.themeValues[theme.key] || 'Not recorded']);
+    for (const pair of pairs) {
+      const term = document.createElement('dt'); const value = document.createElement('dd');
+      term.textContent = pair[0]; value.textContent = pair[1]; attributes.append(term,value);
+    }
+    content.append(year,title,description,attributes);
+    return content;
+  }
+  
+  function stopMapTransition() {
+    if (pendingPopup) { map.off('moveend',pendingPopup); pendingPopup = null; }
+    map.stop();
+    if (popup) { popup.remove(); popup = null; }
+  }
+  
+  function showPlacePopup(place) {
+    if (popup) popup.remove();
+    const width = Math.max(180,Math.min(440,el('map').clientWidth - 84));
+    popup = new maplibregl.Popup({className:'cm-memory-popup', maxWidth:`${width}px`,
+      offset:18, anchor:'bottom', closeOnClick:true, focusAfterOpen:false})
+      .setLngLat([place.longitude,place.latitude]).setDOMContent(popupContent(place)).addTo(map);
+    popupPlaceId = place.id;
+    el('legend').hidden = true;
+    popup.on('close', () => { popupPlaceId = null; el('legend').hidden = !selectedDisplays.size; });
+  }
+  
+  function focusPlace(id, options = {}) {
+    if (!visible.some(place => place.id === id)) return;
+    stopMapTransition();
+    const previous = byId.get(activeId);
+    activeId = id;
+    const place = byId.get(id);
+    if (previous) styleMarker(previous);
+    styleMarker(place);
+    renderPanel();
+    const target = new maplibregl.LngLat(place.longitude,place.latitude);
+    const zoom = options.zoom ?? focusZoom(place);
+    const animate = options.animate !== false && !reducedMotion.matches && (map.getCenter().distanceTo(target) > 0.1 || map.getZoom() !== zoom || options.pitch !== undefined || options.bearing !== undefined);
+    if (animate) {
+      pendingPopup = () => {
+        pendingPopup = null;
+        if (activeId === id) showPlacePopup(place);
+      };
+      map.once('moveend',pendingPopup);
+    }
+    map.flyTo({center:target, zoom, pitch:options.pitch ?? map.getPitch(), bearing:options.bearing ?? map.getBearing(), padding:{top:150,bottom:0,left:0,right:0}, retainPadding:false, duration:animate ? 1150 : 0});
+    if (!animate) showPlacePopup(place);
+  }
+  
+  function fitSelection() {
+    stopMapTransition();
+    if (!visible.length) return;
+    if (visible.length === 1) {
+      const place = visible[0];
+      map.flyTo({center:[place.longitude,place.latitude], zoom:focusZoom(place), duration:reducedMotion.matches ? 0 : 1000});
+      return;
+    }
+    const points = [];
+    for (const place of visible) points.push([place.longitude,place.latitude]);
+    const bounds = points.reduce((bounds, point) => bounds.extend(point), new maplibregl.LngLatBounds(points[0],points[0]));
+    map.fitBounds(bounds,{padding:48,maxZoom:12,duration:reducedMotion.matches ? 0 : 1200});
+  }
+  
+  function refreshSelection() {
+    visible = themeCandidates().filter(place => !selectedPlaces.size || selectedPlaces.has(place.id));
+    activeId = visible.length === 1 ? visible[0].id : null;
+    renderMarkers(); renderNavigation(); renderLegend(); renderPanel(); fitSelection();
+  }
+  
+  function renderLayerCounts() {
+    for (const theme of themes) {
+      const count = ordered.filter(place => place.themeValues[theme.key] === flagValue).length;
+      el(`count-${theme.id}`).textContent = count;
+      el(`theme-${theme.id}`).checked = selectedThemes.has(theme.key);
+    }
+    el('flag-value').disabled = !selectedThemes.size;
+  }
+  
+  function themesChanged() {
+    selectedPlaces.clear(); draftPlaces.clear();
+    renderLayerCounts(); renderPlaceOptions(); refreshSelection();
+  }
+  
+  for (const theme of themes) {
+    const label = document.createElement('label');
+    label.className = 'cm-check-row';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox'; checkbox.id = `cm-theme-${theme.id}`;
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) selectedThemes.add(theme.key); else selectedThemes.delete(theme.key);
+      themesChanged();
+    });
+    const count = document.createElement('span');
+    count.className = 'cm-count'; count.id = `cm-count-${theme.id}`;
+    const swatch = document.createElement('span');
+    swatch.className = 'cm-swatch'; swatch.style.background = theme.color;
+    swatch.setAttribute('aria-hidden','true');
+    label.append(checkbox,swatch,document.createTextNode(theme.title),count);
+    el('layer-options').append(label);
+  }
+  if (!themes.length) el('layer-options').textContent = 'No theme columns in this collection.';
+  
+  function renderPlaceOptions() {
+    el('place-options').replaceChildren();
+    const query = el('place-search').value.trim().toLocaleLowerCase();
+    const candidates = themeCandidates().filter(place => `${place.location} ${yearText(place)}`.toLocaleLowerCase().includes(query));
+    for (const place of candidates) {
+      const label = document.createElement('label');
+      label.className = 'cm-check-row';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox'; checkbox.value = place.id; checkbox.checked = draftPlaces.has(place.id);
+      checkbox.addEventListener('change', () => {
+        if (checkbox.checked) draftPlaces.add(place.id); else draftPlaces.delete(place.id);
+        updateDraftCount();
+      });
+      const text = document.createElement('span');
+      text.textContent = place.location;
+      const year = document.createElement('small');
+      year.textContent = yearText(place);
+      text.append(year); label.append(checkbox,text); el('place-options').append(label);
+    }
+    if (!candidates.length) {
+      const empty = document.createElement('p'); empty.textContent = 'No places match your search.'; el('place-options').append(empty);
+    }
+    updateDraftCount();
+  }
+  
+  function updateDraftCount() {
+    el('apply-places').textContent = `View selected (${draftPlaces.size})`;
+    el('apply-places').disabled = !draftPlaces.size;
+  }
+  el('places-menu').addEventListener('toggle', () => {
+    if (el('places-menu').open) {
+      draftPlaces = new Set(selectedPlaces); el('place-search').value = ''; renderPlaceOptions();
+    }
+  });
+  
+  for (const menu of root.querySelectorAll('.cm-dropdown')) {
+    menu.addEventListener('toggle', () => {
+      if (menu.open) for (const other of root.querySelectorAll('.cm-dropdown')) if (other !== menu) other.open = false;
+    });
+  }
+  document.addEventListener('click', event => {
+    for (const menu of root.querySelectorAll('.cm-dropdown[open]')) if (!menu.contains(event.target)) menu.open = false;
+  });
+  root.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      for (const menu of root.querySelectorAll('.cm-dropdown[open]')) { menu.open = false; menu.querySelector('summary').focus(); }
+      stopMapTransition();
+    }
+  });
+  el('close-layers').addEventListener('click', () => { el('layers-menu').open = false; el('layers-menu').querySelector('summary').focus(); });
+  el('clear-layers').addEventListener('click', () => { selectedThemes.clear(); flagValue = 'yes'; el('flag-value').value = 'yes'; themesChanged(); });
+  el('flag-value').addEventListener('change', event => { flagValue = event.target.value; themesChanged(); });
+  
+  const displayTitles = {layers:'Chronotopes', sentiment:'Sentiment heatmap', chronology:'Chronology lines'};
+  
+  function renderDisplayControls() {
+    for (const key of Object.keys(displayTitles)) el(`display-${key}`).checked = selectedDisplays.has(key);
+    el('display-summary').textContent = selectedDisplays.size === 1 ? displayTitles[Array.from(selectedDisplays)[0]] : `${selectedDisplays.size} displays selected`;
+  }
+  for (const key of Object.keys(displayTitles)) {
+    el(`display-${key}`).addEventListener('change', event => {
+      if (event.target.checked) selectedDisplays.add(key); else selectedDisplays.delete(key);
+      const popupPlace = byId.get(popupPlaceId);
+      renderMarkers(); renderDisplayControls(); renderLegend(); renderPanel();
+      if (popupPlace && selectedDisplays.size) showPlacePopup(popupPlace,{autoPan:false});
+    });
+  }
+  el('close-displays').addEventListener('click', () => { el('display-menu').open = false; el('display-menu').querySelector('summary').focus(); });
+  
+  el('place-search').addEventListener('input', renderPlaceOptions);
+  el('apply-places').addEventListener('click', () => {
+    selectedPlaces = new Set(draftPlaces); el('places-menu').open = false; refreshSelection(); el('places-menu').querySelector('summary').focus();
+  });
+  el('clear-places').addEventListener('click', () => { selectedPlaces.clear(); draftPlaces.clear(); renderPlaceOptions(); refreshSelection(); });
+  el('place-select').addEventListener('change', event => { if (event.target.value) focusPlace(event.target.value); });
+  el('year-select').addEventListener('change', event => {
+    const place = visible.find(item => yearText(item) === event.target.value);
+    if (place) focusPlace(place.id);
+  });
+  el('timeline').addEventListener('input', event => { const place = visible[Number(event.target.value)]; if (place) focusPlace(place.id); });
+  el('previous').addEventListener('click', () => {
+    const index = visible.findIndex(place => place.id === activeId);
+    if (index > 0) focusPlace(visible[index-1].id);
+  });
+  el('next').addEventListener('click', () => {
+    const index = visible.findIndex(place => place.id === activeId);
+    if (index < visible.length-1) focusPlace(visible[index+1].id);
+  });
+  el('fit-selection').addEventListener('click', fitSelection);
+  
+  el('reset').addEventListener('click', () => {
+    selectedThemes.clear(); selectedPlaces.clear(); draftPlaces.clear();
+    flagValue = 'yes'; selectedDisplays = new Set(['layers']); visible = ordered.slice(); activeId = home.id;
+    el('flag-value').value = 'yes'; el('place-search').value = '';
+    for (const menu of root.querySelectorAll('.cm-dropdown')) menu.open = false;
+    renderLayerCounts(); renderPlaceOptions(); renderMarkers(); renderDisplayControls(); renderNavigation(); renderLegend(); renderPanel();
+    focusPlace(home.id,{zoom:homeZoom,pitch:homePitch,bearing:homeBearing});
+  });
+  renderLayerCounts(); renderPlaceOptions(); renderMarkers(); renderDisplayControls(); renderNavigation(); renderLegend(); renderPanel();
+  focusPlace(home.id,{zoom:homeZoom,animate:false});
+  map.on('resize', () => {
+    const place = byId.get(popupPlaceId);
+    if (place) showPlacePopup(place);
+  });
+  if (window.ResizeObserver) new ResizeObserver(() => map.resize()).observe(el('map'));
+})();
+</script>
+</section>
